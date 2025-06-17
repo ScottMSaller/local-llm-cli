@@ -108,7 +108,7 @@ Default: 'local-model'
 #### Combining Options
 You can combine multiple options:
 ```bash
-guru -t 0.8 -m mistral-7b -s 0.9 tell me a joke
+guru -t 0.8 -m mistral-7b tell me a joke
 ```
 
 ## Troubleshooting
