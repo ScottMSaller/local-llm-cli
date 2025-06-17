@@ -1,6 +1,6 @@
 # Guru CLI - Your Local LLM Command Line Interface 🧘‍♂️
 
-A powerful command-line interface for interacting with LM Studio's local LLM server. Get instant AI responses right in your terminal with real-time token streaming.
+A powerful command-line interface for interacting with LM Studio's local LLM server. Get instant AI responses right in your terminal with real-time token streaming and conversation memory.
 
 ## Prerequisites
 
@@ -54,7 +54,38 @@ guru
 In this mode, you can:
 - Type your questions and get responses
 - Use up/down arrows to access command history
+- Maintain conversation context (the model remembers your chat)
+- Type 'clear' to reset the conversation memory
 - Type 'exit' to quit
+
+### Conversation Memory
+
+The CLI supports two modes of operation:
+
+1. **Single Command Mode** (no memory):
+```bash
+guru tell me about meditation
+```
+Perfect for quick, one-off questions.
+
+2. **Interactive Mode** (with conversation memory):
+```bash
+guru
+```
+Features:
+- Maintains context throughout your conversation
+- Model remembers previous questions and answers
+- Allows for more natural, contextual conversations
+- Type 'clear' to start a fresh conversation
+- Memory persists until you exit or clear it
+
+Example conversation:
+```
+You: Tell me about dogs
+Bot: [responds about dogs]
+You: What are their average lifespans?
+Bot: [understands "their" refers to dogs and responds accordingly]
+```
 
 ### Command Line Options
 
