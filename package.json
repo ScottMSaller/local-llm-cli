@@ -11,7 +11,8 @@
     "url": "git+https://github.com/ScottMSaller/local-llm-cli.git"
   },
   "bin": {
-    "local-llm": "./index.js"
+    "local-llm": "./index.js",
+    "guru": "./index.js"
   },
   "keywords": [],
   "author": "",
