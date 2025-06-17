@@ -52,11 +52,12 @@ async function askQuestion(history = []) {
   return userPrompt;
 }
 
-async function processStream(response) {
+async function processStream(response, messages) {
   try {
     let buffer = '';
     let firstToken = true;
     const spinner = ora('Thinking...').start();
+    let fullResponse = '';
     
     for await (const chunk of response.data) {
       const lines = (buffer + chunk.toString()).split('\n');
@@ -76,6 +77,7 @@ async function processStream(response) {
                 firstToken = false;
               }
               process.stdout.write(chalk.red(text));
+              fullResponse += text;
             }
           } catch (e) {
             console.error(chalk.red('Error parsing JSON:', e.message));
@@ -91,7 +93,10 @@ async function processStream(response) {
         try {
           const parsed = JSON.parse(jsonStr);
           const text = parsed.choices?.[0]?.delta?.content || '';
-          if (text) process.stdout.write(chalk.white(text));
+          if (text) {
+            process.stdout.write(chalk.red(text));
+            fullResponse += text;
+          }
         } catch (e) {
           console.error(chalk.red('Error parsing final JSON:', e.message));
         }
@@ -100,18 +105,24 @@ async function processStream(response) {
     
     console.log('\n'); // Add newline at the end
     if (firstToken) spinner.stop();
+    
+    // Add assistant's response to messages
+    messages.push({ role: 'assistant', content: fullResponse });
+    return messages;
   } catch (error) {
     console.error(chalk.red('Error processing stream:', error.message));
+    return messages;
   }
 }
 
-async function getCompletion(prompt) {
+async function getCompletion(prompt, messages = []) {
   try {
+    // Add user's message to history
+    messages.push({ role: 'user', content: prompt });
+    
     const response = await axios.post(API_URL, {
       model: options.model,
-      messages: [
-        { role: 'user', content: prompt }
-      ],
+      messages: messages,
       temperature: parseFloat(options.temperature),
       stream: true
     }, {
@@ -122,13 +133,14 @@ async function getCompletion(prompt) {
       }
     });
 
-    await processStream(response);
+    return await processStream(response, messages);
   } catch (error) {
     console.error(chalk.red('❌ Failed to get response:', error.message));
     if (error.response) {
       console.error(chalk.red('Status:', error.response.status));
       console.error(chalk.red('Data:', error.response.data));
     }
+    return messages;
   }
 }
 
@@ -148,10 +160,13 @@ async function main() {
   console.log(chalk.gray('Current settings:'));
   console.log(chalk.gray(`- Temperature: ${options.temperature}`));
   console.log(chalk.gray(`- Model: ${options.model}`));
+  console.log(chalk.gray('- Conversation memory: enabled'));
   console.log();
 
-  // Interactive mode with command history
+  // Interactive mode with command history and conversation memory
   const history = [];
+  let messages = [];  // Store conversation history
+  
   while (true) {
     const userPrompt = await askQuestion(history);
     history.push(userPrompt);
@@ -160,8 +175,14 @@ async function main() {
       console.log(chalk.cyan('\n👋 Goodbye!'));
       break;
     }
+    
+    if (userPrompt.toLowerCase() === 'clear') {
+      messages = [];
+      console.log(chalk.yellow('\nConversation memory cleared!'));
+      continue;
+    }
 
-    await getCompletion(userPrompt);
+    messages = await getCompletion(userPrompt, messages);
   }
 }
 
