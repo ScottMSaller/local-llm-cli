@@ -38,6 +38,17 @@ npm install -g .
    - Click "Start Server"
    - Ensure the server is running on port 1234 (default)
 
+## Configuring for first use - Important!
+
+After ensuring that all of the installion directions have been followed, you can continue on with the final step of setup- setting your connection string as an environment variable.
+
+To be able to use this program properly, you must make sure that the connection string is accurate. For this purpose, we have created one environment variable called LOCAL_URL. This URL should look similar to the one you can copy off of LM Studio. 
+```bash
+LOCAL_URL = http://10.0.0.140:1234
+```
+
+ As long as you create a .env file at the root of the project's directory, and declare LOCAL_URL as your connection string from LM Studio, you're golden!
+ 
 ## Usage
 
 ### Quick Start
@@ -150,9 +161,3 @@ If you encounter any issues or need help:
 - Open an issue on GitHub
 - Check the troubleshooting section
 - Ensure LM Studio is properly configured
-
-## Acknowledgments
-
-- Built for use with [LM Studio](https://lmstudio.ai/)
-- Uses Node.js and various npm packages
-- Inspired by the need for simple CLI access to local LLMs
