@@ -5,8 +5,10 @@ import axios from 'axios';
 import chalk from 'chalk';
 import ora from 'ora';
 import { program } from 'commander';
+import dotenv from 'dotenv';
+dotenv.config();
 
-const API_URL = 'http://10.0.0.140:1234/v1/chat/completions';
+const API_URL = process.env.LOCAL_URL + '/v1/chat/completions';
 
 // Configure command line options
 program
