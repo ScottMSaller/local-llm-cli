@@ -2,33 +2,50 @@
 
 import inquirer from 'inquirer';
 import axios from 'axios';
+import chalk from 'chalk';
+import ora from 'ora';
+import { program } from 'commander';
 
-const API_URL = 'http://10.0.0.140:1234/v1/chat/completions';  // Change to localhost for testing
+const API_URL = 'http://10.0.0.140:1234/v1/chat/completions';
+
+// Configure command line options
+program
+  .version('1.0.0')
+  .option('-t, --temperature <number>', 'Set the temperature (0.0 to 2.0)', '0.7')
+  .option('-m, --model <string>', 'Set the model name', 'local-model')
+  .argument('[prompt...]', 'The prompt to send to the model')
+  .parse(process.argv);
+
+const options = program.opts();
+const promptArgs = program.args;
 
 async function checkServer() {
+  const spinner = ora('Checking LM Studio connection...').start();
   try {
     await axios.get(API_URL.replace('/chat/completions', ''));
+    spinner.succeed(chalk.green('Connected to LM Studio'));
     return true;
   } catch (error) {
+    spinner.fail(chalk.red('Failed to connect to LM Studio'));
     if (error.code === 'ECONNREFUSED') {
-      console.error('❌ Cannot connect to LM Studio. Please make sure:');
-      console.error('1. LM Studio is running');
-      console.error('2. You have started the local server in LM Studio');
-      console.error('3. The server is running on port 1234');
+      console.error(chalk.red('Please make sure:'));
+      console.error(chalk.yellow('1. LM Studio is running'));
+      console.error(chalk.yellow('2. You have started the local server in LM Studio'));
+      console.error(chalk.yellow('3. The server is running on port 1234'));
     } else {
-      console.error('❌ Error connecting to server:', error.message);
+      console.error(chalk.red('Error connecting to server:', error.message));
     }
-    return false
-    ;
+    return false;
   }
 }
 
-async function askQuestion() {
+async function askQuestion(history = []) {
   const { userPrompt } = await inquirer.prompt([
     {
       type: 'input',
       name: 'userPrompt',
-      message: 'Enter your prompt (or type "exit" to quit):',
+      message: chalk.cyan('Enter your prompt (or type "exit" to quit):'),
+      history: history
     },
   ]);
 
@@ -37,8 +54,9 @@ async function askQuestion() {
 
 async function processStream(response) {
   try {
-    console.log('Starting to process stream...');
     let buffer = '';
+    let firstToken = true;
+    const spinner = ora('Thinking...').start();
     
     for await (const chunk of response.data) {
       const lines = (buffer + chunk.toString()).split('\n');
@@ -52,9 +70,15 @@ async function processStream(response) {
           try {
             const parsed = JSON.parse(jsonStr);
             const text = parsed.choices?.[0]?.delta?.content || '';
-            if (text) process.stdout.write(text);
+            if (text) {
+              if (firstToken) {
+                spinner.stop();
+                firstToken = false;
+              }
+              process.stdout.write(chalk.red(text));
+            }
           } catch (e) {
-            console.error('Error parsing JSON:', e.message);
+            console.error(chalk.red('Error parsing JSON:', e.message));
           }
         }
       }
@@ -67,28 +91,28 @@ async function processStream(response) {
         try {
           const parsed = JSON.parse(jsonStr);
           const text = parsed.choices?.[0]?.delta?.content || '';
-          if (text) process.stdout.write(text);
+          if (text) process.stdout.write(chalk.white(text));
         } catch (e) {
-          console.error('Error parsing final JSON:', e.message);
+          console.error(chalk.red('Error parsing final JSON:', e.message));
         }
       }
     }
     
     console.log('\n'); // Add newline at the end
+    if (firstToken) spinner.stop();
   } catch (error) {
-    console.error('Error processing stream:', error.message);
+    console.error(chalk.red('Error processing stream:', error.message));
   }
 }
 
 async function getCompletion(prompt) {
   try {
-    console.log('Sending request to API...');
     const response = await axios.post(API_URL, {
-      model: 'local-model',
+      model: options.model,
       messages: [
         { role: 'user', content: prompt }
       ],
-      temperature: 0.7,
+      temperature: parseFloat(options.temperature),
       stream: true
     }, {
       responseType: 'stream',
@@ -100,10 +124,10 @@ async function getCompletion(prompt) {
 
     await processStream(response);
   } catch (error) {
-    console.error('❌ Failed to get response:', error.message);
+    console.error(chalk.red('❌ Failed to get response:', error.message));
     if (error.response) {
-      console.error('Status:', error.response.status);
-      console.error('Data:', error.response.data);
+      console.error(chalk.red('Status:', error.response.status));
+      console.error(chalk.red('Data:', error.response.data));
     }
   }
 }
@@ -113,24 +137,27 @@ async function main() {
     return;
   }
 
-  // Check if we have command line arguments
-  const args = process.argv.slice(2);
-  
-  if (args.length > 0) {
-    // If we have arguments, use them as the prompt
-    const prompt = args.join(' ');
+  // If prompt was provided as command line argument, use it
+  if (promptArgs.length > 0) {
+    const prompt = promptArgs.join(' ');
     await getCompletion(prompt);
     return;
   }
 
-  console.log('model loaded properly.\n');
+  console.log(chalk.cyan('\nWelcome to Guru CLI! 🧘‍♂️'));
+  console.log(chalk.gray('Current settings:'));
+  console.log(chalk.gray(`- Temperature: ${options.temperature}`));
+  console.log(chalk.gray(`- Model: ${options.model}`));
+  console.log();
 
-  // Interactive mode
+  // Interactive mode with command history
+  const history = [];
   while (true) {
-    const userPrompt = await askQuestion();
+    const userPrompt = await askQuestion(history);
+    history.push(userPrompt);
     
     if (userPrompt.toLowerCase() === 'exit') {
-      console.log('\n👋 Goodbye!');
+      console.log(chalk.cyan('\n👋 Goodbye!'));
       break;
     }
 
