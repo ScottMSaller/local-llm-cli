@@ -6,7 +6,22 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { program } from 'commander';
 import dotenv from 'dotenv';
-dotenv.config();
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+// Get the directory where the script is located
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Load .env file from the script's directory
+dotenv.config({ path: join(__dirname, '.env') });
+
+if (!process.env.LOCAL_URL) {
+  console.error(chalk.red('Error: LOCAL_URL environment variable is not set'));
+  console.error(chalk.yellow('Please create a .env file in the installation directory with:'));
+  console.error(chalk.yellow('LOCAL_URL=http://your-lm-studio-url:1234'));
+  process.exit(1);
+}
 
 const API_URL = process.env.LOCAL_URL + '/v1/chat/completions';
 

@@ -22,10 +22,17 @@ cd local-llm-cli
 npm install
 ```
 
-3. Install globally:
+3. Create a `.env` file in the project directory:
+```bash
+echo "LOCAL_URL=http://your-lm-studio-url:1234" > .env
+```
+
+4. Install globally:
 ```bash
 npm install -g .
 ```
+
+Note: When installing globally, the `.env` file will be copied to the global installation directory. If you need to change the `LOCAL_URL` later, you'll need to update the `.env` file in both the project directory and the global installation directory.
 
 ## Setting up LM Studio
 
